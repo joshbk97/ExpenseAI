@@ -1,0 +1,60 @@
+# ---------- Node / frontend ----------
+node_modules/
+
+# Vite / Remix / bundler caches & builds
+.vite/
+build/
+dist/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+
+# ---------- Environment / secrets ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+
+*.sqlite3
+*.sqlite
+*.db
+
+venv/
+.venv/
+ENV/
+env/
+
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+
+# ---------- Editor / OS ----------
+.vscode/
+.idea/
+*.suo
+*.user
+*.sln
+*.swp
+*~
+
+.DS_Store
+Thumbs.db
+Desktop.ini
+

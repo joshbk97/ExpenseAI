@@ -66,3 +66,19 @@ A full-stack AI-first expense tracking application that allows you to upload rec
 
 ---
 *Built with React Remix, FastAPI, Supabase, and OpenAI.*
+
+## 🧪 Tests
+
+### Backend (FastAPI / pytest)
+From the repo root:
+```bash
+cd backend
+pytest -q
+```
+
+### Frontend (Remix / Vitest)
+From the repo root:
+```bash
+cd frontend
+npm run test:ci
+```

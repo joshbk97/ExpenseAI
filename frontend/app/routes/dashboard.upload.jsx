@@ -344,7 +344,6 @@ export default function UploadReceipt() {
                           <input
                             type="number"
                             min="0.01"
-                            step="0.01"
                             className="input-field w-full"
                             value={item.quantity}
                             onChange={(e) => setManualItem(index, "quantity", e.target.value)}

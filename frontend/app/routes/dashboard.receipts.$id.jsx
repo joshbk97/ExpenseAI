@@ -139,17 +139,23 @@ export default function ReceiptDetail() {
     const deletedItemIds = (receipt?.items || [])
       .map((item) => item.id)
       .filter((itemId) => !editableItems.some((editableItem) => editableItem.id === itemId));
-    const hasInvalidItems = changedItems.some(
-      (item) =>
+    const isBlankNumeric = (value) => String(value ?? "").trim() === "";
+    const hasInvalidItems = changedItems.some((item) => {
+      const quantity = Number(item.quantity);
+      const unitPrice = Number(item.unit_price);
+      return (
         String(item.name || "").trim().length === 0 ||
-        !Number.isFinite(Number(item.quantity)) ||
-        !Number.isFinite(Number(item.unit_price)) ||
-        Number(item.quantity) < 0 ||
-        Number(item.unit_price) < 0
-    );
+        isBlankNumeric(item.quantity) ||
+        isBlankNumeric(item.unit_price) ||
+        !Number.isFinite(quantity) ||
+        !Number.isFinite(unitPrice) ||
+        quantity <= 0 ||
+        unitPrice <= 0
+      );
+    });
 
     if (hasInvalidItems) {
-      alert("Please fill all item names and ensure quantity/price are not negative.");
+      alert("Zero or blank input is not allowed for quantity and unit price. Please enter values greater than 0.");
       return;
     }
 
@@ -174,7 +180,7 @@ export default function ReceiptDetail() {
       await receiptsApi.updateItems(id, payload);
       await loadReceipt();
       setEditing(false);
-      setSaveMessage("Mappings saved.");
+      setSaveMessage("Changes saved.");
     } catch (err) {
       const detail = err?.response?.data?.detail;
       const msg = Array.isArray(detail)
@@ -457,7 +463,7 @@ export default function ReceiptDetail() {
                           {editing ? (
                             <input
                               type="number"
-                              min="0"
+                              min="0.01"
                               step="0.01"
                               value={editable?.quantity ?? 0}
                               onChange={(e) => updateEditableItem(item.client_id, "quantity", e.target.value)}
@@ -471,7 +477,7 @@ export default function ReceiptDetail() {
                           {editing ? (
                             <input
                               type="number"
-                              min="0"
+                              min="0.01"
                               step="0.01"
                               value={editable?.unit_price ?? 0}
                               onChange={(e) => updateEditableItem(item.client_id, "unit_price", e.target.value)}
@@ -547,7 +553,7 @@ export default function ReceiptDetail() {
                           {editing ? (
                             <input
                               type="number"
-                              min="0"
+                              min="0.01"
                               step="0.01"
                               value={editable?.quantity ?? 0}
                               onChange={(e) => updateEditableItem(item.client_id, "quantity", e.target.value)}
@@ -562,7 +568,7 @@ export default function ReceiptDetail() {
                           {editing ? (
                             <input
                               type="number"
-                              min="0"
+                              min="0.01"
                               step="0.01"
                               value={editable?.unit_price ?? 0}
                               onChange={(e) => updateEditableItem(item.client_id, "unit_price", e.target.value)}

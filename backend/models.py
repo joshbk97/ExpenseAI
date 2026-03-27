@@ -53,7 +53,13 @@ class Receipt(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     user = relationship("User", back_populates="receipts")
-    items = relationship("ReceiptItem", back_populates="receipt", cascade="all, delete-orphan")
+    # Keep line items in a stable order (creation/id order) across reloads.
+    items = relationship(
+        "ReceiptItem",
+        back_populates="receipt",
+        cascade="all, delete-orphan",
+        order_by="ReceiptItem.id.asc()",
+    )
 
 
 class ReceiptItem(Base):

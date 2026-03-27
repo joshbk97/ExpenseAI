@@ -171,11 +171,9 @@ export default function ReceiptDetail() {
         })),
         deleted_item_ids: deletedItemIds,
       };
-      const res = await receiptsApi.updateItems(id, payload);
-      setReceipt(res.data);
-      setEditableItems((res.data.items || []).map(toEditableItem));
+      await receiptsApi.updateItems(id, payload);
+      await loadReceipt();
       setEditing(false);
-      setIsDirty(false);
       setSaveMessage("Mappings saved.");
     } catch (err) {
       const detail = err?.response?.data?.detail;

@@ -309,7 +309,7 @@ export default function UploadReceipt() {
 
                 <div className="rounded-xl border border-white/10 overflow-hidden">
                   <div className="bg-surface-900/60 p-3 text-sm text-gray-300 flex items-center justify-between">
-                    <span>Line Items (same mapped headers as uploaded receipts)</span>
+                    <span>Line Items</span>
                     <button type="button" className="btn-secondary py-1.5" onClick={addManualItem}>Add Item</button>
                   </div>
                   <div className="p-3 space-y-3">

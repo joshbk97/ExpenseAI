@@ -3,13 +3,24 @@ Shared Gemini LLM client wrapper.
 """
 import json
 import logging
+import os
 import google.generativeai as genai
 from config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+_configured_api_key = None
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
+
+def _ensure_genai_configured() -> None:
+    """Configure Gemini client with latest env key (supports key rotation)."""
+    global _configured_api_key
+    key = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or settings.GEMINI_API_KEY or "").strip()
+    if not key:
+        raise RuntimeError("Gemini API key is missing. Set GEMINI_API_KEY (or GOOGLE_API_KEY) in backend/.env.")
+    if key != _configured_api_key:
+        genai.configure(api_key=key)
+        _configured_api_key = key
 
 
 async def call_llm(
@@ -20,6 +31,7 @@ async def call_llm(
     max_tokens: int = 2000,
 ) -> str:
     """Call Gemini chat completions. user_content can be a string or list of content blocks."""
+    _ensure_genai_configured()
     model_name = model or settings.GEMINI_MODEL
 
     gemini_model = genai.GenerativeModel(
@@ -44,6 +56,7 @@ async def call_llm_json(
     temperature: float = 0.1,
 ) -> dict:
     """Call LLM and parse response as JSON."""
+    _ensure_genai_configured()
     model_name = model or settings.GEMINI_MODEL
 
     gemini_model = genai.GenerativeModel(

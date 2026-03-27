@@ -14,7 +14,6 @@ export default function UploadReceipt() {
   const [categories, setCategories] = useState([]);
   const [manualForm, setManualForm] = useState({
     merchant: "",
-    currency: "AUD",
     receipt_date: "",
     items: [{ name: "", quantity: 1, unit_price: "", category_id: "" }],
   });
@@ -75,7 +74,6 @@ export default function UploadReceipt() {
   const resetManualForm = () => {
     setManualForm({
       merchant: "",
-      currency: "AUD",
       receipt_date: "",
       items: [{ name: "", quantity: 1, unit_price: "", category_id: "" }],
     });
@@ -135,7 +133,6 @@ export default function UploadReceipt() {
     try {
       const res = await receiptsApi.createManual({
         merchant: manualForm.merchant.trim(),
-        currency: String(manualForm.currency || "AUD").trim().toUpperCase(),
         // Send date as YYYY-MM-DD to avoid timezone shifts / tz-aware datetimes.
         receipt_date: manualForm.receipt_date || null,
         items: cleanedItems,
@@ -288,8 +285,8 @@ export default function UploadReceipt() {
               </div>
             ) : (
               <form onSubmit={handleManualSubmit} className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
                     <label className="block text-sm text-gray-300 mb-1.5">Merchant</label>
                     <input
                       type="text"
@@ -297,16 +294,6 @@ export default function UploadReceipt() {
                       value={manualForm.merchant}
                       onChange={(e) => setManualForm((prev) => ({ ...prev, merchant: e.target.value }))}
                       placeholder="e.g. Woolworths"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-300 mb-1.5">Currency</label>
-                    <input
-                      type="text"
-                      maxLength={10}
-                      className="input-field w-full uppercase"
-                      value={manualForm.currency}
-                      onChange={(e) => setManualForm((prev) => ({ ...prev, currency: e.target.value }))}
                     />
                   </div>
                   <div>
@@ -364,7 +351,7 @@ export default function UploadReceipt() {
                           />
                         </div>
                         <div className="col-span-3 md:col-span-2">
-                          <label className="block text-xs text-gray-400 mb-1">Price</label>
+                          <label className="block text-xs text-gray-400 mb-1">Price (AUD)</label>
                           <input
                             type="number"
                             min="0"
@@ -428,7 +415,9 @@ export default function UploadReceipt() {
               <div>
                 <h4 className="font-medium text-primary-300">How it works</h4>
                 <p className="text-sm text-gray-400 mt-1 leading-relaxed">
-                  Our pipeline runs OCR to extract all text, sends it to a secure LLM to parse into structured JSON (merchant, date, line items), and finally categorises each item with confidence scoring.
+                  {mode === "upload"
+                    ? "Our pipeline runs OCR to extract receipt text, sends it to a secure LLM to structure merchant/date/line items, and then auto-categorises each item with confidence scoring."
+                    : "Manual entry saves your merchant, date, and line items directly into your expense ledger. Currency is fixed to AUD by default, and selected categories are used immediately in dashboards and reports."}
                 </p>
               </div>
             </div>

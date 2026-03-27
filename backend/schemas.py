@@ -77,7 +77,6 @@ class ManualReceiptItemCreate(BaseModel):
 
 class ManualReceiptCreateRequest(BaseModel):
     merchant: str = Field(..., min_length=1, max_length=255)
-    currency: str = Field("AUD", min_length=1, max_length=10)
     receipt_date: Optional[datetime] = None
     items: List[ManualReceiptItemCreate] = Field(..., min_length=1)
 

@@ -1,3 +1,4 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -12,7 +13,10 @@ class Settings(BaseSettings):
     JWT_EXPIRATION_MINUTES: int = 60 * 24 * 7  # 7 days
 
     # Gemini
-    GEMINI_API_KEY: str = ""
+    GEMINI_API_KEY: str = Field(
+        default="",
+        validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+    )
     GEMINI_MODEL: str = "gemini-2.5-flash"
     GEMINI_MODEL_MINI: str = "gemini-2.5-flash"
 

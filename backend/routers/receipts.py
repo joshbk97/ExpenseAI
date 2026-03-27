@@ -84,7 +84,7 @@ async def create_manual_receipt(
         user_id=user.id,
         merchant=payload.merchant.strip() or "Unknown",
         total=receipt_total,
-        currency=payload.currency.strip().upper() or "AUD",
+        currency="AUD",
         receipt_date=receipt_date,
         raw_text="",
         structured_json="{}",

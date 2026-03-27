@@ -143,12 +143,6 @@ export default function DashboardLayout() {
             <h2 className="text-base sm:text-lg font-semibold text-white truncate">{currentPageLabel}</h2>
           </div>
           <div className="flex-1" />
-          <button
-            onClick={() => navigate("/dashboard/upload")}
-            className="btn-primary hidden sm:inline-flex px-4 py-2 text-sm"
-          >
-            Add Expense
-          </button>
           {user && (
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold">
               {(user.full_name || user.email)[0].toUpperCase()}

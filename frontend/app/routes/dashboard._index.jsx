@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "@remix-run/react";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area
@@ -66,9 +65,6 @@ export default function DashboardIndex() {
           <h2 className="text-2xl font-bold text-white">Dashboard Overview</h2>
           <p className="text-gray-400">Your spending at a glance (Last 30 days)</p>
         </div>
-        <Link to="/dashboard/upload" className="btn-primary inline-flex">
-          Add Expense
-        </Link>
       </div>
 
       {/* Summary Cards */}

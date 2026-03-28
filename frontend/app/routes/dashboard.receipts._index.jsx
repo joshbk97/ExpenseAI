@@ -175,7 +175,7 @@ export default function ReceiptsList() {
                   <tr key={r.id} className="hover:bg-white/5 transition-colors group">
                     <td className="p-4">
                       <div className="font-semibold text-white">{r.merchant || "Unknown"}</div>
-                      <div className="text-xs text-gray-400">ID: {r.id}</div>
+                      {/* <div className="text-xs text-gray-400">ID: {r.id}</div> */}
                     </td>
                     <td className="p-4 text-gray-300">
                       {r.receipt_date ? format(new Date(r.receipt_date), "MMM d, yyyy") : "—"}

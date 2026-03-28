@@ -63,6 +63,7 @@ export default function ReceiptDetail() {
   const [saveMessage, setSaveMessage] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const [showSaveValidationBanner, setShowSaveValidationBanner] = useState(false);
+  const [showDeleteConfirmBanner, setShowDeleteConfirmBanner] = useState(false);
 
   const toEditableItem = (item) => ({
     client_id: `item-${item.id}`,
@@ -120,6 +121,15 @@ export default function ReceiptDetail() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [showSaveValidationBanner]);
+
+  useEffect(() => {
+    if (!showDeleteConfirmBanner) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setShowDeleteConfirmBanner(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showDeleteConfirmBanner]);
 
   const updateEditableItem = (itemClientId, field, value) => {
     setIsDirty(true);
@@ -248,8 +258,12 @@ export default function ReceiptDetail() {
     setShowSaveValidationBanner(false);
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this receipt? This cannot be undone.")) return;
+  const handleDeleteClick = () => {
+    setShowDeleteConfirmBanner(true);
+  };
+
+  const confirmDeleteExpense = async () => {
+    setShowDeleteConfirmBanner(false);
     setDeleting(true);
     try {
       await receiptsApi.delete(id);
@@ -295,7 +309,7 @@ export default function ReceiptDetail() {
           </span>
         </div>
         <button
-          onClick={handleDelete}
+          onClick={handleDeleteClick}
           disabled={deleting}
           className="btn-secondary text-red-300 hover:text-red-200 hover:bg-red-500/10 border-transparent hover:border-red-500/20 flex items-center gap-2"
         >
@@ -712,6 +726,49 @@ export default function ReceiptDetail() {
           >
             OK
           </button>
+        </div>
+      </div>
+    ) : null}
+
+    {showDeleteConfirmBanner ? (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-confirm-banner-title"
+        onClick={() => setShowDeleteConfirmBanner(false)}
+      >
+        <div
+          className="glass-card w-full max-w-md border border-red-500/35 p-6 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-4">
+            <AlertCircle className="w-10 h-10 text-red-400 shrink-0" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <p
+                id="delete-confirm-banner-title"
+                className="text-sm text-gray-300 leading-relaxed text-left"
+              >
+                Are you sure you want to delete this expense? This cannot be undone.
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+            <button
+              type="button"
+              className="btn-secondary w-full sm:w-auto min-w-[7rem]"
+              onClick={() => setShowDeleteConfirmBanner(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn-secondary w-full sm:w-auto min-w-[7rem] text-red-300 hover:text-red-200 hover:bg-red-500/10 border-red-500/20 hover:border-red-500/30"
+              onClick={confirmDeleteExpense}
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
     ) : null}

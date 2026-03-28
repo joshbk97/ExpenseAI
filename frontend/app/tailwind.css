@@ -5,6 +5,10 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: dark;
+  }
+
   * {
     margin: 0;
     padding: 0;
@@ -15,6 +19,18 @@
     @apply bg-surface-900 text-gray-100 font-sans antialiased;
     min-height: 100vh;
     overflow-x: hidden;
+  }
+
+  /* Native <select> dropdowns: avoid light panel + inherited light text (unreadable). */
+  select option,
+  select optgroup {
+    background-color: #0f172a;
+    color: #e2e8f0;
+  }
+
+  select optgroup {
+    color: #94a3b8;
+    font-weight: 600;
   }
 
   button,

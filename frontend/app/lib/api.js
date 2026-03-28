@@ -43,7 +43,7 @@ export const receiptsApi = {
     });
   },
   createManual: (data) => api.post("/receipts/manual", data),
-  list: (params) => api.get("/receipts", { params }),
+  list: (params, config = {}) => api.get("/receipts", { ...config, params }),
   get: (id) => api.get(`/receipts/${id}`),
   categories: () => api.get("/receipts/categories/list"),
   updateItems: (id, data) => api.put(`/receipts/${id}/items`, data),

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Link } from "@remix-run/react";
 import { format } from "date-fns";
-import { Receipt, Search, Eye, Filter, Loader2, AlertCircle } from "lucide-react";
+import { Receipt, Search, Eye, Filter, Loader2 } from "lucide-react";
 import { receiptsApi } from "~/lib/api";
 
 const statusColors = {
@@ -15,28 +15,69 @@ const statusColors = {
 export default function ReceiptsList() {
   const [receipts, setReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [merchantSearch, setMerchantSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const hasFilters = Boolean(search || statusFilter);
+  const hasFilters = Boolean(merchantSearch.trim() || statusFilter);
+  const hasEverHadReceipts = useRef(false);
+  const abortRef = useRef(null);
+
+  const needle = merchantSearch.trim().toLowerCase();
+  const filteredReceipts = useMemo(() => {
+    if (!needle) return receipts;
+    return receipts.filter((r) => (r.merchant || "").toLowerCase().includes(needle));
+  }, [receipts, needle]);
 
   useEffect(() => {
-    loadReceipts();
-  }, [search, statusFilter]);
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
 
-  const loadReceipts = async () => {
-    try {
-      setLoading(true);
-      const res = await receiptsApi.list({ 
-        merchant: search || undefined,
-        status: statusFilter || undefined
-      });
-      setReceipts(res.data.receipts);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const isFirstLoad = !hasEverHadReceipts.current;
+    if (isFirstLoad) setLoading(true);
+    else setRefreshing(true);
+
+    (async () => {
+      try {
+        const pageSize = 100;
+        const all = [];
+        let page = 1;
+        let total = null;
+
+        while (page <= 100) {
+          const res = await receiptsApi.list(
+            {
+              status: statusFilter || undefined,
+              page,
+              page_size: pageSize,
+            },
+            { signal: ac.signal }
+          );
+          if (ac.signal.aborted) return;
+
+          const batch = res.data.receipts ?? [];
+          if (total === null) total = res.data.total ?? 0;
+          all.push(...batch);
+
+          if (batch.length === 0 || all.length >= total || batch.length < pageSize) break;
+          page++;
+        }
+
+        if (ac.signal.aborted) return;
+        setReceipts(all);
+      } catch (err) {
+        if (err.code === "ERR_CANCELED" || err.name === "CanceledError") return;
+        console.error(err);
+      } finally {
+        if (ac.signal.aborted) return;
+        setLoading(false);
+        setRefreshing(false);
+        hasEverHadReceipts.current = true;
+      }
+    })();
+
+    return () => ac.abort();
+  }, [statusFilter]);
 
   return (
     <div className="page-shell">
@@ -53,19 +94,23 @@ export default function ReceiptsList() {
       {/* Filters */}
       <div className="glass-card p-4 flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
           <input
             type="text"
             placeholder="Search merchants..."
             className="input-field w-full pl-10 h-11"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={merchantSearch}
+            onChange={(e) => setMerchantSearch(e.target.value)}
+            autoComplete="off"
           />
         </div>
         <div className="relative w-full sm:w-48 shrink-0">
           <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+          {refreshing && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400 animate-spin pointer-events-none z-10" />
+          )}
           <select
-            className="input-field w-full pl-10 h-11 appearance-none"
+            className={`input-field w-full pl-10 h-11 appearance-none ${refreshing ? "pr-10" : ""}`}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -81,7 +126,7 @@ export default function ReceiptsList() {
             type="button"
             className="btn-secondary h-11"
             onClick={() => {
-              setSearch("");
+              setMerchantSearch("");
               setStatusFilter("");
             }}
           >
@@ -91,7 +136,11 @@ export default function ReceiptsList() {
       </div>
 
       {/* List */}
-      <div className="glass-card overflow-hidden">
+      <div
+        className={`glass-card overflow-hidden transition-opacity duration-200 ${
+          refreshing && filteredReceipts.length > 0 ? "opacity-[0.72]" : ""
+        }`}
+      >
         {loading ? (
           <div className="p-12 flex justify-center text-primary-500">
             <Loader2 className="w-8 h-8 animate-spin" />
@@ -101,6 +150,12 @@ export default function ReceiptsList() {
             <Receipt className="w-12 h-12 mb-3 opacity-20" />
             <p className="text-lg">No receipts found</p>
             <p className="text-sm">Try adjusting your filters or upload a new one.</p>
+          </div>
+        ) : filteredReceipts.length === 0 ? (
+          <div className="p-12 text-center text-gray-500 flex flex-col items-center">
+            <Search className="w-12 h-12 mb-3 opacity-20" />
+            <p className="text-lg">No matching merchants</p>
+            <p className="text-sm">Try a different search or clear the merchant filter.</p>
           </div>
         ) : (
           <>
@@ -116,7 +171,7 @@ export default function ReceiptsList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {receipts.map((r) => (
+                {filteredReceipts.map((r) => (
                   <tr key={r.id} className="hover:bg-white/5 transition-colors group">
                     <td className="p-4">
                       <div className="font-semibold text-white">{r.merchant || "Unknown"}</div>
@@ -150,7 +205,7 @@ export default function ReceiptsList() {
             </table>
           </div>
           <div className="md:hidden p-4 space-y-3">
-            {receipts.map((r) => (
+            {filteredReceipts.map((r) => (
               <Link
                 key={r.id}
                 to={`/dashboard/receipts/${r.id}`}

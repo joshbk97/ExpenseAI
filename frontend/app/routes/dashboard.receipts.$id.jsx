@@ -12,6 +12,43 @@ const statusColors = {
   failed: "bg-red-500/15 text-red-300 border-red-500/30",
 };
 
+const INVALID_POSITIVE_NUMBER_MSG = "Zero/negative values are not allowed.";
+
+const SAVE_ITEMS_VALIDATION_BANNER_MSG =
+  "Every line item needs a name, and quantity and unit price must be greater than zero (not blank).";
+
+function isInvalidPositiveNumber(value) {
+  if (String(value ?? "").trim() === "") return true;
+  const n = Number(value);
+  return !Number.isFinite(n) || n <= 0;
+}
+
+function PositiveNumberInput({ value, onChange, wrapperClassName = "", inputClassName = "" }) {
+  const invalid = isInvalidPositiveNumber(value);
+  return (
+    <div className={`flex items-center gap-1 ${wrapperClassName}`}>
+      <input
+        type="number"
+        min="0.01"
+        step="0.01"
+        value={value}
+        onChange={onChange}
+        className={inputClassName}
+        aria-invalid={invalid}
+      />
+      {invalid ? (
+        <span
+          title={INVALID_POSITIVE_NUMBER_MSG}
+          className="inline-flex shrink-0 cursor-help text-red-500"
+          aria-label={INVALID_POSITIVE_NUMBER_MSG}
+        >
+          <AlertCircle className="w-4 h-4" aria-hidden />
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 export default function ReceiptDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -25,6 +62,7 @@ export default function ReceiptDetail() {
   const [editableItems, setEditableItems] = useState([]);
   const [saveMessage, setSaveMessage] = useState("");
   const [isDirty, setIsDirty] = useState(false);
+  const [showSaveValidationBanner, setShowSaveValidationBanner] = useState(false);
 
   const toEditableItem = (item) => ({
     client_id: `item-${item.id}`,
@@ -73,6 +111,15 @@ export default function ReceiptDetail() {
   useEffect(() => {
     loadCategories();
   }, []);
+
+  useEffect(() => {
+    if (!showSaveValidationBanner) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setShowSaveValidationBanner(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showSaveValidationBanner]);
 
   const updateEditableItem = (itemClientId, field, value) => {
     setIsDirty(true);
@@ -131,6 +178,7 @@ export default function ReceiptDetail() {
     setEditing(true);
     setIsDirty(false);
     setSaveMessage("");
+    setShowSaveValidationBanner(false);
   };
 
   const handleSaveItems = async () => {
@@ -155,7 +203,7 @@ export default function ReceiptDetail() {
     });
 
     if (hasInvalidItems) {
-      alert("Zero or blank input is not allowed for quantity and unit price. Please enter values greater than 0.");
+      setShowSaveValidationBanner(true);
       return;
     }
 
@@ -197,6 +245,7 @@ export default function ReceiptDetail() {
     setEditing(false);
     setIsDirty(false);
     setSaveMessage("");
+    setShowSaveValidationBanner(false);
   };
 
   const handleDelete = async () => {
@@ -230,7 +279,10 @@ export default function ReceiptDetail() {
     );
   }
 
+  const hasUploadedSource = Boolean(receipt.image_path && String(receipt.image_path).trim());
+
   return (
+    <>
     <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -258,42 +310,38 @@ export default function ReceiptDetail() {
       ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Image & Raw Text */}
-        <div className="space-y-6">
-          <div className="glass-card overflow-hidden">
-            <div className="p-4 flex items-center justify-between">
-              <h3 className="flex w-full font-semibold text-white items-center gap-2 border-b border-white/10 pb-2">
-                Original Image
-              </h3>
-            </div>
-            <div className="p-4 bg-black/40 flex justify-center max-h-[500px] overflow-auto">
-              {receipt.image_path ? (
+        {hasUploadedSource ? (
+          <div className="space-y-6">
+            <div className="glass-card overflow-hidden">
+              <div className="p-4 flex items-center justify-between">
+                <h3 className="flex w-full font-semibold text-white items-center gap-2 border-b border-white/10 pb-2">
+                  Original Image
+                </h3>
+              </div>
+              <div className="p-4 bg-black/40 flex justify-center max-h-[500px] overflow-auto">
                 <img
                   src={`/${receipt.image_path.replace(/\\/g, "/")}`}
                   alt="Receipt"
                   className="max-w-full h-auto object-contain rounded-lg"
                   onError={(e) => { e.target.onerror = null; e.target.src = "https://via.placeholder.com/400x600?text=Image+Not+Found" }}
                 />
-              ) : (
-                <div className="h-64 flex items-center justify-center text-gray-300">No image available</div>
-              )}
+              </div>
             </div>
+
+            <details className="glass-card group max-h-96 overflow-y-auto">
+              <summary className="p-4 font-semibold text-gray-200 flex justify-between items-center cursor-pointer hover:bg-white/10 transition-colors">
+                <span className="flex w-full border-b border-white/10 pb-2">Raw OCR Output</span>
+              </summary>
+              <div className="p-4">
+                <pre className="text-xs text-gray-200 whitespace-pre-wrap font-mono">
+                  {receipt.raw_text || "No text extracted"}
+                </pre>
+              </div>
+            </details>
           </div>
+        ) : null}
 
-          <details className="glass-card group max-h-96 overflow-y-auto">
-            <summary className="p-4 font-semibold text-gray-200 flex justify-between items-center cursor-pointer hover:bg-white/10 transition-colors">
-              <span className="flex w-full border-b border-white/10 pb-2">Raw OCR Output</span>
-            </summary>
-            <div className="p-4">
-              <pre className="text-xs text-gray-200 whitespace-pre-wrap font-mono">
-                {receipt.raw_text || "No text extracted"}
-              </pre>
-            </div>
-          </details>
-        </div>
-
-        {/* Right Column: Structured Data */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className={`space-y-6 ${hasUploadedSource ? "lg:col-span-2" : "lg:col-span-3"}`}>
           {/* Summary Card */}
           <div className="glass-card p-6">
             <h3 className="text-lg font-bold text-white mb-6 border-b border-white/10 pb-4 flex items-center gap-2">
@@ -411,7 +459,7 @@ export default function ReceiptDetail() {
                               type="text"
                               value={editable?.name ?? ""}
                               onChange={(e) => updateEditableItem(item.client_id, "name", e.target.value)}
-                              className="w-full bg-white border border-gray-200/70 rounded-lg px-3 py-2 text-sm text-gray-900"
+                              className="input-field w-full"
                             />
                           ) : (
                             <p className="font-medium text-gray-200">{item.name}</p>
@@ -422,7 +470,7 @@ export default function ReceiptDetail() {
                             <select
                               value={editable?.category_id ?? ""}
                               onChange={(e) => updateEditableItem(item.client_id, "category_id", e.target.value)}
-                              className="w-full bg-white border border-gray-200/70 rounded-lg px-3 py-2 text-sm text-gray-900"
+                              className="input-field w-full"
                             >
                               <option value="">Uncategorised</option>
                               {categories.map((category) => (
@@ -461,13 +509,11 @@ export default function ReceiptDetail() {
                         </td>
                         <td className="p-4 text-right text-sm text-gray-300">
                           {editing ? (
-                            <input
-                              type="number"
-                              min="0.01"
-                              step="0.01"
+                            <PositiveNumberInput
                               value={editable?.quantity ?? 0}
                               onChange={(e) => updateEditableItem(item.client_id, "quantity", e.target.value)}
-                              className="w-24 ml-auto bg-white border border-gray-200/70 rounded-lg px-3 py-2 text-sm text-gray-900 text-right"
+                              wrapperClassName="ml-auto justify-end"
+                              inputClassName="input-field w-24 text-right"
                             />
                           ) : (
                             item.quantity
@@ -475,13 +521,11 @@ export default function ReceiptDetail() {
                         </td>
                         <td className="p-4 text-right text-sm text-gray-300">
                           {editing ? (
-                            <input
-                              type="number"
-                              min="0.01"
-                              step="0.01"
+                            <PositiveNumberInput
                               value={editable?.unit_price ?? 0}
                               onChange={(e) => updateEditableItem(item.client_id, "unit_price", e.target.value)}
-                              className="w-28 ml-auto bg-white border border-gray-200/70 rounded-lg px-3 py-2 text-sm text-gray-900 text-right"
+                              wrapperClassName="ml-auto justify-end"
+                              inputClassName="input-field w-28 text-right"
                             />
                           ) : (
                             `$${item.unit_price.toFixed(2)}`
@@ -522,7 +566,7 @@ export default function ReceiptDetail() {
                             type="text"
                             value={editable?.name ?? ""}
                             onChange={(e) => updateEditableItem(item.client_id, "name", e.target.value)}
-                            className="w-full bg-white border border-gray-200/70 rounded-lg px-3 py-2 text-sm text-gray-900"
+                            className="input-field w-full"
                           />
                         ) : (
                           <p className="text-sm text-gray-900 font-medium">{item.name}</p>
@@ -534,7 +578,7 @@ export default function ReceiptDetail() {
                           <select
                             value={editable?.category_id ?? ""}
                             onChange={(e) => updateEditableItem(item.client_id, "category_id", e.target.value)}
-                            className="w-full bg-white border border-gray-200/70 rounded-lg px-3 py-2 text-sm text-gray-900"
+                            className="input-field w-full"
                           >
                             <option value="">Uncategorised</option>
                             {categories.map((category) => (
@@ -551,13 +595,11 @@ export default function ReceiptDetail() {
                         <div>
                           <p className="text-xs text-gray-600 mb-1">Qty</p>
                           {editing ? (
-                            <input
-                              type="number"
-                              min="0.01"
-                              step="0.01"
+                            <PositiveNumberInput
                               value={editable?.quantity ?? 0}
                               onChange={(e) => updateEditableItem(item.client_id, "quantity", e.target.value)}
-                              className="w-full bg-white border border-gray-200/70 rounded-lg px-3 py-2 text-sm text-gray-900"
+                              wrapperClassName="w-full min-w-0"
+                              inputClassName="input-field min-w-0 flex-1 text-right"
                             />
                           ) : (
                             <p className="text-sm text-gray-700">{item.quantity}</p>
@@ -566,13 +608,11 @@ export default function ReceiptDetail() {
                         <div>
                           <p className="text-xs text-gray-600 mb-1">Price</p>
                           {editing ? (
-                            <input
-                              type="number"
-                              min="0.01"
-                              step="0.01"
+                            <PositiveNumberInput
                               value={editable?.unit_price ?? 0}
                               onChange={(e) => updateEditableItem(item.client_id, "unit_price", e.target.value)}
-                              className="w-full bg-white border border-gray-200/70 rounded-lg px-3 py-2 text-sm text-gray-900"
+                              wrapperClassName="w-full min-w-0"
+                              inputClassName="input-field min-w-0 flex-1 text-right"
                             />
                           ) : (
                             <p className="text-sm text-gray-700">${item.unit_price.toFixed(2)}</p>
@@ -643,5 +683,38 @@ export default function ReceiptDetail() {
         </div>
       </div>
     </div>
+
+    {showSaveValidationBanner ? (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="save-validation-banner-title"
+        onClick={() => setShowSaveValidationBanner(false)}
+      >
+        <div
+          className="glass-card w-full max-w-md border border-red-500/35 p-6 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-4">
+            <AlertCircle className="w-10 h-10 text-red-400 shrink-0" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <h3 id="save-validation-banner-title" className="text-lg font-semibold text-white mb-2">
+                Cannot save changes
+              </h3>
+              <p className="text-sm text-gray-300 leading-relaxed">{SAVE_ITEMS_VALIDATION_BANNER_MSG}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-primary mt-6 w-full sm:w-auto min-w-[7rem]"
+            onClick={() => setShowSaveValidationBanner(false)}
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    ) : null}
+    </>
   );
 }

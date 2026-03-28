@@ -8,6 +8,17 @@ import { expensesApi } from "~/lib/api";
 
 const COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#14b8a6", "#f59e0b", "#3b82f6", "#10b981", "#64748b"];
 
+const CHART_TOOLTIP = {
+  contentStyle: {
+    backgroundColor: "#1e293b",
+    border: "1px solid #334155",
+    borderRadius: "0.75rem",
+    color: "#f8fafc",
+  },
+  labelStyle: { color: "#f1f5f9", fontWeight: 600 },
+  itemStyle: { color: "#818cf8", fontWeight: "bold" },
+};
+
 export default function DashboardIndex() {
   const [summary, setSummary] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -137,10 +148,7 @@ export default function DashboardIndex() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                 <XAxis dataKey="date" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" tickFormatter={(v) => `$${v}`} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '0.75rem', color: '#f8fafc' }}
-                  itemStyle={{ color: '#818cf8', fontWeight: 'bold' }}
-                />
+                <Tooltip {...CHART_TOOLTIP} />
                 <Area type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -171,8 +179,8 @@ export default function DashboardIndex() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '0.75rem', color: '#f8fafc' }}
+                <Tooltip
+                  {...CHART_TOOLTIP}
                   formatter={(value) => [`$${value.toFixed(2)}`, "Spent"]}
                 />
               </PieChart>
@@ -192,9 +200,9 @@ export default function DashboardIndex() {
                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                <XAxis dataKey="category_name" stroke="#94a3b8" tick={{fontSize: 12}} />
                <YAxis stroke="#94a3b8" tickFormatter={(v) => `$${v}`} />
-               <Tooltip 
-                 cursor={{fill: '#334155', opacity: 0.4}}
-                 contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '0.75rem', color: '#f8fafc' }}
+               <Tooltip
+                 {...CHART_TOOLTIP}
+                 cursor={{ fill: "#334155", opacity: 0.4 }}
                />
                <Bar dataKey="total" name="Total Spent" radius={[4, 4, 0, 0]}>
                  {categories.map((entry, index) => (

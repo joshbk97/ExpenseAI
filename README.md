@@ -65,4 +65,4 @@ A full-stack AI-first expense tracking application that allows you to upload rec
 4. Open your browser to `http://localhost:5173`. You can create an account and start uploading receipts!
 
 ---
-*Built with React Remix, FastAPI, Supabase, and OpenAI.*
+*Built with React Remix, FastAPI and Supabase.*

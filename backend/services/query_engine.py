@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 SCHEMA_DESCRIPTION = """
 Database schema (PostgreSQL):
 
-TABLE users (id SERIAL PK, email VARCHAR, full_name VARCHAR, created_at TIMESTAMP)
 TABLE categories (id SERIAL PK, name VARCHAR, icon VARCHAR, description TEXT)
 TABLE receipts (id SERIAL PK, user_id INT FK→users, merchant VARCHAR, total FLOAT, currency VARCHAR, receipt_date TIMESTAMP, status VARCHAR, created_at TIMESTAMP)
 TABLE receipt_items (id SERIAL PK, receipt_id INT FK→receipts, category_id INT FK→categories, name VARCHAR, quantity FLOAT, unit_price FLOAT, total_price FLOAT, category_confidence FLOAT, created_at TIMESTAMP)
@@ -30,12 +29,13 @@ SQL_SYSTEM_PROMPT = f"""You are a SQL query generator for an expense tracking ap
 
 Rules:
 1. Generate ONLY SELECT queries — never INSERT, UPDATE, DELETE, DROP, ALTER, or any DDL/DML.
-2. ALWAYS filter by user_id = :user_id for security (the user should only see their own data).
-3. Use PostgreSQL syntax.
-4. Return ONLY the SQL query, no explanations or markdown.
-5. Use table aliases for readability.
-6. Use appropriate aggregations (SUM, COUNT, AVG, GROUP BY) when the question implies summaries.
-7. Limit results to 50 rows maximum.
+2. NEVER query the users table or any authentication-related data.
+3. ALWAYS filter by receipts.user_id = :user_id for security (the user should only see their own data).
+4. Use PostgreSQL syntax.
+5. Return ONLY the SQL query, no explanations or markdown.
+6. Use table aliases for readability.
+7. Use appropriate aggregations (SUM, COUNT, AVG, GROUP BY) when the question implies summaries.
+8. Limit results to 50 rows maximum.
 """
 
 ANSWER_SYSTEM_PROMPT = """You are a helpful expense tracking assistant. Given a user's question and the SQL query results, provide a clear, conversational answer. Format numbers as currency where appropriate. Be concise."""
@@ -47,23 +47,66 @@ FORBIDDEN_PATTERNS = [
     r";\s*\w",  # Multiple statements
 ]
 
+ALLOWED_TABLES = {"receipts", "receipt_items", "categories"}
+DISALLOWED_TABLES = {"users"}
 
-def validate_sql(sql: str) -> bool:
+
+def _extract_tables(sql: str) -> set[str]:
+    """
+    Find table names referenced by FROM/JOIN clauses.
+    Supports schema-qualified names and aliases.
+    """
+    table_refs = re.findall(r"\b(?:FROM|JOIN)\s+([a-zA-Z0-9_.\"]+)", sql, flags=re.IGNORECASE)
+    tables = set()
+    for ref in table_refs:
+        # Strip quoting and schema (public.receipts -> receipts)
+        cleaned = ref.replace('"', "").split(".")[-1].lower()
+        tables.add(cleaned)
+    return tables
+
+
+def _has_user_scope(sql: str) -> bool:
+    """Require explicit user scoping with user_id = :user_id."""
+    patterns = [
+        r"\b[a-zA-Z_][a-zA-Z0-9_]*\.user_id\s*=\s*:user_id\b",
+        r"\buser_id\s*=\s*:user_id\b",
+        r"\b:user_id\s*=\s*[a-zA-Z_][a-zA-Z0-9_]*\.user_id\b",
+        r"\b:user_id\s*=\s*user_id\b",
+    ]
+    return any(re.search(pattern, sql, flags=re.IGNORECASE) for pattern in patterns)
+
+
+def validate_sql(sql: str) -> tuple[bool, str]:
     """Ensure the generated SQL is a safe SELECT query."""
     sql_upper = sql.upper().strip()
 
     if not sql_upper.startswith("SELECT"):
-        return False
+        return False, "Only SELECT statements are allowed."
 
     for pattern in FORBIDDEN_PATTERNS:
         if re.search(pattern, sql_upper):
-            return False
+            return False, "Disallowed SQL operation detected."
 
     # No multiple statements
     if sql.count(";") > 1:
-        return False
+        return False, "Multiple SQL statements are not allowed."
 
-    return True
+    tables = _extract_tables(sql)
+    if not tables:
+        return False, "Could not determine query tables."
+    if tables & DISALLOWED_TABLES:
+        return False, "Access to restricted tables is not allowed."
+    if not tables.issubset(ALLOWED_TABLES):
+        return False, "Query references tables outside the allowed scope."
+
+    # If receipt_items is queried, require a join to receipts for ownership filtering.
+    if "receipt_items" in tables and "receipts" not in tables:
+        return False, "receipt_items queries must join receipts for user scoping."
+
+    if not _has_user_scope(sql):
+        return False, "Missing required user_id security filter."
+
+    return True, ""
 
 
 async def run_nl_query(question: str, user_id: int, db: AsyncSession) -> QueryResponse:
@@ -81,8 +124,22 @@ async def run_nl_query(question: str, user_id: int, db: AsyncSession) -> QueryRe
 
     logger.info(f"[QueryEngine] Generated SQL: {sql}")
 
+    # Enforce response size cap even if model forgets.
+    if not re.search(r"\bLIMIT\s+\d+\b", sql, flags=re.IGNORECASE):
+        sql = sql.rstrip(";") + " LIMIT 50;"
+    else:
+        sql = re.sub(
+            r"\bLIMIT\s+\d+\b",
+            "LIMIT 50",
+            sql,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+
     # Step 2: Validate
-    if not validate_sql(sql):
+    is_valid, reason = validate_sql(sql)
+    if not is_valid:
+        logger.warning(f"[QueryEngine] Rejected SQL: {reason} | SQL: {sql}")
         return QueryResponse(
             question=question,
             sql_generated=sql,

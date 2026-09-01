@@ -41,12 +41,12 @@ A full-stack AI-first expense tracking application that allows you to upload rec
    cp .env.example .env
    ```
 5. Edit `.env` to include your Supabase connection string and OpenAI API key.
-   *Note: Ensure the Supabase URL uses `postgresql+asyncpg://` as the protocol.*
+   _Note: Ensure the Supabase URL uses `postgresql+asyncpg://` as the protocol._
 6. Start the server:
    ```bash
    uvicorn main:app --reload --port 8000
    ```
-   *The database schema (tables/indexes) will be created automatically on startup.*
+   _The database schema (tables/indexes) will be created automatically on startup._
 
 ### 2. Frontend Setup
 
@@ -65,19 +65,24 @@ A full-stack AI-first expense tracking application that allows you to upload rec
 4. Open your browser to `http://localhost:5173`. You can create an account and start uploading receipts!
 
 ---
-*Built with React Remix, FastAPI, Supabase, and OpenAI.*
+
+_Built with React Remix, FastAPI and Supabase._
 
 ## 🧪 Tests
 
 ### Backend (FastAPI / pytest)
+
 From the repo root:
+
 ```bash
 cd backend
 pytest -q
 ```
 
 ### Frontend (Remix / Vitest)
+
 From the repo root:
+
 ```bash
 cd frontend
 npm run test:ci

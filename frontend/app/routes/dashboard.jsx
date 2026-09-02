@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Upload,
   MessageSquare,
-  Lightbulb,
   Receipt,
   LogOut,
   Menu,
@@ -18,7 +17,6 @@ const navItems = [
   { to: "/dashboard/upload", icon: Upload, label: "Add Expenses" },
   { to: "/dashboard/receipts", icon: Receipt, label: "View Expenses" },
   { to: "/dashboard/query", icon: MessageSquare, label: "Ask AI" },
-  { to: "/dashboard/insights", icon: Lightbulb, label: "Insights" },
 ];
 
 export default function DashboardLayout() {

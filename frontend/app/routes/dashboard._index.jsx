@@ -64,6 +64,62 @@ const renderPieLabel = ({ cx, cy, midAngle, outerRadius, percent, name }) => {
   );
 };
 
+const KpiCardSkeleton = () => (
+  <div className="stat-card animate-pulse">
+    <div className="flex justify-between items-start">
+      <div className="space-y-2 flex-1">
+        <div className="h-3.5 w-24 bg-surface-700/60 rounded-md"></div>
+        <div className="h-7 w-32 bg-surface-700/80 rounded-lg"></div>
+      </div>
+      <div className="w-10 h-10 rounded-xl bg-surface-700/60 shrink-0"></div>
+    </div>
+  </div>
+);
+
+const ChartSkeleton = ({ type = "line" }) => (
+  <div className="h-full flex flex-col justify-between pt-2">
+    {type === "pie" ? (
+      <div className="flex-1 flex flex-col items-center justify-center gap-4">
+        <div className="w-40 h-40 rounded-full border-[18px] border-surface-700/50 border-t-surface-600 animate-pulse flex items-center justify-center shadow-inner">
+          <div className="w-16 h-16 rounded-full bg-surface-800/80"></div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="h-3 w-14 bg-surface-700/50 rounded animate-pulse"></div>
+          <div className="h-3 w-16 bg-surface-700/50 rounded animate-pulse"></div>
+          <div className="h-3 w-12 bg-surface-700/50 rounded animate-pulse"></div>
+        </div>
+      </div>
+    ) : type === "bar" ? (
+      <div className="flex-1 flex items-end justify-between gap-3 px-4 pb-4">
+        {[40, 75, 55, 90, 30, 65, 80].map((h, i) => (
+          <div
+            key={i}
+            className="w-full bg-surface-700/50 rounded-t-md animate-pulse"
+            style={{ height: `${h}%`, animationDelay: `${i * 100}ms` }}
+          ></div>
+        ))}
+      </div>
+    ) : (
+      <div className="flex-1 flex flex-col justify-end gap-2 px-2 pb-4">
+        <div className="w-full h-full flex items-end justify-between gap-2 border-b border-surface-700/40 pb-2">
+          {[30, 45, 60, 40, 70, 50, 85, 65, 95, 80].map((h, i) => (
+            <div
+              key={i}
+              className="w-full bg-gradient-to-t from-primary-500/20 to-primary-500/5 rounded-t animate-pulse"
+              style={{ height: `${h}%`, animationDelay: `${i * 80}ms` }}
+            ></div>
+          ))}
+        </div>
+        <div className="flex justify-between px-1">
+          {[1, 2, 3, 4, 5].map((_, i) => (
+            <div key={i} className="h-2.5 w-8 bg-surface-700/40 rounded animate-pulse"></div>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+);
+
 export default function DashboardIndex() {
   const [days, setDays] = useState(0); // 0 = All Time
   const [summary, setSummary] = useState(null);
@@ -107,9 +163,39 @@ export default function DashboardIndex() {
 
   if (loading && !summary) {
     return (
-      <div className="flex h-[calc(100vh-8rem)] items-center justify-center flex-col gap-3">
-        <Loader2 className="w-10 h-10 text-primary-500 animate-spin" />
-        <p className="text-gray-400 text-sm animate-pulse">Loading dashboard overview...</p>
+      <div className="page-shell">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-7 w-48 bg-surface-700/60 rounded-lg animate-pulse"></div>
+            <div className="h-4 w-36 bg-surface-700/40 rounded-md animate-pulse"></div>
+          </div>
+          <div className="h-9 w-64 bg-surface-800/80 rounded-xl border border-white/10 animate-pulse"></div>
+        </div>
+
+        {/* KPI Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <KpiCardSkeleton />
+          <KpiCardSkeleton />
+        </div>
+
+        {/* Charts Row 1 Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="glass-card p-6 h-96">
+            <div className="h-5 w-44 bg-surface-700/60 rounded-md mb-6 animate-pulse"></div>
+            <ChartSkeleton type="line" />
+          </div>
+          <div className="glass-card p-6 h-96">
+            <div className="h-5 w-44 bg-surface-700/60 rounded-md mb-6 animate-pulse"></div>
+            <ChartSkeleton type="pie" />
+          </div>
+        </div>
+
+        {/* Bar Chart Skeleton */}
+        <div className="glass-card p-6 h-96">
+          <div className="h-5 w-44 bg-surface-700/60 rounded-md mb-6 animate-pulse"></div>
+          <ChartSkeleton type="bar" />
+        </div>
       </div>
     );
   }
@@ -166,57 +252,49 @@ export default function DashboardIndex() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="stat-card border-t-[3px] border-t-primary-500 relative overflow-hidden">
-          {loading && (
-            <div className="absolute inset-0 bg-surface-900/40 backdrop-blur-[1px] z-10 flex items-center justify-center">
-              <Loader2 className="w-4 h-4 text-primary-400 animate-spin" />
-            </div>
-          )}
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-400 text-sm font-medium mb-1">Total Spent</p>
-              <h3 className="text-3xl font-bold text-white">${summary?.total_spent?.toFixed(2) || "0.00"}</h3>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center text-primary-400">
-              <DollarSign className="w-5 h-5" />
+        {loading ? (
+          <KpiCardSkeleton />
+        ) : (
+          <div className="stat-card relative overflow-hidden">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-400 text-sm font-medium mb-1">Total Spent</p>
+                <h3 className="text-3xl font-bold text-white">${summary?.total_spent?.toFixed(2) || "0.00"}</h3>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center text-primary-400">
+                <DollarSign className="w-5 h-5" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="stat-card border-t-[3px] border-t-emerald-500 relative overflow-hidden">
-          {loading && (
-            <div className="absolute inset-0 bg-surface-900/40 backdrop-blur-[1px] z-10 flex items-center justify-center">
-              <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
-            </div>
-          )}
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-400 text-sm font-medium mb-1">Top Merchant</p>
-              <h3 className="text-xl font-bold text-white mt-1 border-gray-600 pb-1">
-                {summary?.top_merchant || "N/A"}
-              </h3>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <Calendar className="w-5 h-5" />
+        {loading ? (
+          <KpiCardSkeleton />
+        ) : (
+          <div className="stat-card relative overflow-hidden">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-400 text-sm font-medium mb-1">Top Merchant</p>
+                <h3 className="text-xl font-bold text-white mt-1 border-gray-600 pb-1">
+                  {summary?.top_merchant || "N/A"}
+                </h3>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <Calendar className="w-5 h-5" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Spending Trends */}
         <div className="glass-card p-6 h-96 relative overflow-hidden">
-          {loading && (
-            <div className="absolute inset-0 bg-surface-900/60 backdrop-blur-[2px] z-20 flex items-center justify-center rounded-2xl transition-all">
-              <div className="flex items-center gap-3 bg-surface-800/90 border border-white/10 px-4 py-2.5 rounded-xl shadow-2xl">
-                <Loader2 className="w-5 h-5 text-primary-400 animate-spin" />
-                <span className="text-xs font-medium text-gray-200">Updating trends...</span>
-              </div>
-            </div>
-          )}
           <h3 className="text-lg font-semibold text-white mb-6">Daily Spending Trends</h3>
-          {trends.length > 0 ? (
+          {loading ? (
+            <ChartSkeleton type="line" />
+          ) : trends.length > 0 ? (
             <ResponsiveContainer width="100%" height="85%">
               <AreaChart data={trends} margin={{ top: 10, right: 20, left: 10, bottom: 15 }}>
                 <defs>
@@ -255,16 +333,10 @@ export default function DashboardIndex() {
 
         {/* Categories Breakdown */}
         <div className="glass-card p-6 h-96 relative overflow-hidden">
-          {loading && (
-            <div className="absolute inset-0 bg-surface-900/60 backdrop-blur-[2px] z-20 flex items-center justify-center rounded-2xl transition-all">
-              <div className="flex items-center gap-3 bg-surface-800/90 border border-white/10 px-4 py-2.5 rounded-xl shadow-2xl">
-                <Loader2 className="w-5 h-5 text-primary-400 animate-spin" />
-                <span className="text-xs font-medium text-gray-200">Updating categories...</span>
-              </div>
-            </div>
-          )}
           <h3 className="text-lg font-semibold text-white mb-6">Spending by Category</h3>
-          {categories.length > 0 ? (
+          {loading ? (
+            <ChartSkeleton type="pie" />
+          ) : categories.length > 0 ? (
             <ResponsiveContainer width="100%" height="85%">
               <PieChart>
                 <Pie
@@ -297,16 +369,10 @@ export default function DashboardIndex() {
 
       {/* Categories Bar Chart */}
       <div className="glass-card p-6 h-96 relative overflow-hidden">
-        {loading && (
-          <div className="absolute inset-0 bg-surface-900/60 backdrop-blur-[2px] z-20 flex items-center justify-center rounded-2xl transition-all">
-            <div className="flex items-center gap-3 bg-surface-800/90 border border-white/10 px-4 py-2.5 rounded-xl shadow-2xl">
-              <Loader2 className="w-5 h-5 text-primary-400 animate-spin" />
-              <span className="text-xs font-medium text-gray-200">Updating comparison...</span>
-            </div>
-          </div>
-        )}
         <h3 className="text-lg font-semibold text-white mb-6">Category Comparison</h3>
-        {categories.length > 0 ? (
+        {loading ? (
+          <ChartSkeleton type="bar" />
+        ) : categories.length > 0 ? (
            <ResponsiveContainer width="100%" height="85%">
              <BarChart data={categories} margin={{ top: 10, right: 20, left: 10, bottom: 15 }}>
                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />

@@ -25,9 +25,9 @@
     "recharts": "^2.15.0"
   },
   "devDependencies": {
+    "@remix-run/dev": "^2.15.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
-    "@remix-run/dev": "^2.15.2",
     "@types/react": "^18.3.14",
     "@types/react-dom": "^18.3.2",
     "autoprefixer": "^10.4.20",

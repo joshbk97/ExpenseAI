@@ -17,8 +17,8 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY"),
     )
-    GEMINI_MODEL: str = "gemini-2.5-flash"
-    GEMINI_MODEL_MINI: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
+    GEMINI_MODEL_MINI: str = "gemini-3.5-flash-lite"
 
     # File uploads
     UPLOAD_DIR: str = "uploads"

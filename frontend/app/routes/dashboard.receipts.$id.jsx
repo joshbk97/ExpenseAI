@@ -24,27 +24,16 @@ function isInvalidPositiveNumber(value) {
 }
 
 function PositiveNumberInput({ value, onChange, wrapperClassName = "", inputClassName = "" }) {
-  const invalid = isInvalidPositiveNumber(value);
   return (
     <div className={`flex items-center gap-1 ${wrapperClassName}`}>
       <input
         type="number"
-        min="0.01"
-        step="0.01"
+        min="0"
+        step="any"
         value={value}
         onChange={onChange}
         className={inputClassName}
-        aria-invalid={invalid}
       />
-      {invalid ? (
-        <span
-          title={INVALID_POSITIVE_NUMBER_MSG}
-          className="inline-flex shrink-0 cursor-help text-red-500"
-          aria-label={INVALID_POSITIVE_NUMBER_MSG}
-        >
-          <AlertCircle className="w-4 h-4" aria-hidden />
-        </span>
-      ) : null}
     </div>
   );
 }
@@ -191,7 +180,8 @@ export default function ReceiptDetail() {
     setShowSaveValidationBanner(false);
   };
 
-  const handleSaveItems = async () => {
+  const handleSaveItems = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!isDirty) return;
     const changedItems = editableItems.filter(isItemModified);
     const deletedItemIds = (receipt?.items || [])
@@ -341,17 +331,6 @@ export default function ReceiptDetail() {
                 />
               </div>
             </div>
-
-            <details className="glass-card group max-h-96 overflow-y-auto">
-              <summary className="p-4 font-semibold text-gray-200 flex justify-between items-center cursor-pointer hover:bg-white/10 transition-colors">
-                <span className="flex w-full border-b border-white/10 pb-2">Raw OCR Output</span>
-              </summary>
-              <div className="p-4">
-                <pre className="text-xs text-gray-200 whitespace-pre-wrap font-mono">
-                  {receipt.raw_text || "No text extracted"}
-                </pre>
-              </div>
-            </details>
           </div>
         ) : null}
 
@@ -394,7 +373,8 @@ export default function ReceiptDetail() {
 
           {/* Line Items */}
           <div className="glass-card overflow-hidden">
-             <div className="p-6 flex items-center justify-between">
+            <form onSubmit={handleSaveItems}>
+              <div className="p-6 flex items-center justify-between">
               <h3 className="flex-1 font-semibold text-white text-lg border-b border-white/10 pb-2">
                 Line Items
               </h3>
@@ -432,8 +412,7 @@ export default function ReceiptDetail() {
                       Cancel
                     </button>
                     <button
-                      type="button"
-                      onClick={handleSaveItems}
+                      type="submit"
                       disabled={saving || !isDirty}
                       className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -445,6 +424,13 @@ export default function ReceiptDetail() {
               </div>
             </div>
             
+            {showSaveValidationBanner && (
+              <div className="mx-6 mt-4 flex items-start gap-3 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl text-sm">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <p>Please complete all line items with valid quantity and unit price.</p>
+              </div>
+            )}
+
             {(editing ? editableItems.length : receipt.items.length) > 0 ? (
               <>
               <div className="hidden md:block overflow-x-auto">
@@ -669,6 +655,7 @@ export default function ReceiptDetail() {
                 )}
               </div>
             )}
+            </form>
           </div>
           {editing ? (
             <div className="md:hidden sticky bottom-3 z-10">
@@ -683,7 +670,7 @@ export default function ReceiptDetail() {
                   Cancel
                 </button>
                 <button
-                  type="button"
+                  type="submit"
                   onClick={handleSaveItems}
                   disabled={saving || !isDirty}
                   className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -698,75 +685,45 @@ export default function ReceiptDetail() {
       </div>
     </div>
 
-    {showSaveValidationBanner ? (
-      <div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="save-validation-banner-title"
-        onClick={() => setShowSaveValidationBanner(false)}
-      >
-        <div
-          className="glass-card w-full max-w-md border border-red-500/35 p-6 shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-4">
-            <AlertCircle className="w-10 h-10 text-red-400 shrink-0" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <h3 id="save-validation-banner-title" className="text-lg font-semibold text-white mb-2">
-                Cannot save changes
-              </h3>
-              <p className="text-sm text-gray-300 leading-relaxed">{SAVE_ITEMS_VALIDATION_BANNER_MSG}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="btn-primary mt-6 w-full sm:w-auto min-w-[7rem]"
-            onClick={() => setShowSaveValidationBanner(false)}
-          >
-            OK
-          </button>
-        </div>
-      </div>
-    ) : null}
-
     {showDeleteConfirmBanner ? (
       <div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 transition-opacity"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="delete-confirm-banner-title"
         onClick={() => setShowDeleteConfirmBanner(false)}
       >
         <div
-          className="glass-card w-full max-w-md border border-red-500/35 p-6 shadow-2xl"
+          className="w-full max-w-md bg-surface-900 border border-white/10 rounded-2xl p-6 shadow-2xl space-y-5"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-4">
-            <AlertCircle className="w-10 h-10 text-red-400 shrink-0" aria-hidden />
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
+              <Trash2 className="w-5 h-5" aria-hidden />
+            </div>
             <div className="min-w-0 flex-1">
-              <p
-                id="delete-confirm-banner-title"
-                className="text-sm text-gray-300 leading-relaxed text-left"
-              >
-                Are you sure you want to delete this expense? This cannot be undone.
+              <h3 id="delete-confirm-banner-title" className="text-lg font-semibold text-white">
+                Delete Expense
+              </h3>
+              <p className="mt-1 text-sm text-gray-400 leading-relaxed">
+                Are you sure you want to delete this expense? This action cannot be undone.
               </p>
             </div>
           </div>
-          <div className="mt-6 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
             <button
               type="button"
-              className="btn-secondary w-full sm:w-auto min-w-[7rem]"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-gray-300 font-medium text-sm transition-colors"
               onClick={() => setShowDeleteConfirmBanner(false)}
             >
               Cancel
             </button>
             <button
               type="button"
-              className="btn-secondary w-full sm:w-auto min-w-[7rem] text-red-300 hover:text-red-200 hover:bg-red-500/10 border-red-500/20 hover:border-red-500/30"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-medium text-sm transition-colors shadow-sm"
               onClick={confirmDeleteExpense}
             >
-              Delete
+              Delete Expense
             </button>
           </div>
         </div>

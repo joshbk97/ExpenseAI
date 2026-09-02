@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Link } from "@remix-run/react";
 import { format } from "date-fns";
-import { Receipt, Search, Eye, Filter, Loader2 } from "lucide-react";
+import { Receipt, Search, Eye, Loader2 } from "lucide-react";
 import { receiptsApi } from "~/lib/api";
 
 const statusColors = {
@@ -17,8 +17,7 @@ export default function ReceiptsList() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [merchantSearch, setMerchantSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const hasFilters = Boolean(merchantSearch.trim() || statusFilter);
+  const hasFilters = Boolean(merchantSearch.trim());
   const hasEverHadReceipts = useRef(false);
   const abortRef = useRef(null);
 
@@ -47,7 +46,6 @@ export default function ReceiptsList() {
         while (page <= 100) {
           const res = await receiptsApi.list(
             {
-              status: statusFilter || undefined,
               page,
               page_size: pageSize,
             },
@@ -77,14 +75,14 @@ export default function ReceiptsList() {
     })();
 
     return () => ac.abort();
-  }, [statusFilter]);
+  }, []);
 
   return (
     <div className="page-shell">
       <div className="page-header">
         <div>
-          <h2 className="text-2xl font-bold text-white">All Receipts</h2>
-          <p className="text-gray-400">Manage and view your scanned receipts.</p>
+          <h2 className="text-2xl font-bold text-white">All Expenses</h2>
+          <p className="text-gray-400">Manage and view your scanned receipts and expenses.</p>
         </div>
         <Link to="/dashboard/upload" className="btn-primary">
           Add Expense
@@ -104,30 +102,12 @@ export default function ReceiptsList() {
             autoComplete="off"
           />
         </div>
-        <div className="relative w-full sm:w-48 shrink-0">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-          {refreshing && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400 animate-spin pointer-events-none z-10" />
-          )}
-          <select
-            className={`input-field w-full pl-10 h-11 appearance-none ${refreshing ? "pr-10" : ""}`}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Statuses</option>
-            <option value="completed">Completed</option>
-            <option value="processing">Processing</option>
-            <option value="pending">Pending</option>
-            <option value="failed">Failed</option>
-          </select>
-        </div>
         {hasFilters && (
           <button
             type="button"
             className="btn-secondary h-11"
             onClick={() => {
               setMerchantSearch("");
-              setStatusFilter("");
             }}
           >
             Clear
@@ -181,7 +161,7 @@ export default function ReceiptsList() {
                       {r.receipt_date ? format(new Date(r.receipt_date), "MMM d, yyyy") : "—"}
                     </td>
                     <td className="p-4 font-semibold text-white">
-                      ${r.total.toFixed(2)} {r.currency}
+                      ${r.total.toFixed(2)}
                     </td>
                     <td className="p-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusColors[r.status]}`}>
@@ -224,7 +204,7 @@ export default function ReceiptsList() {
                   <span className="text-gray-400">
                     {r.receipt_date ? format(new Date(r.receipt_date), "MMM d, yyyy") : "No date"}
                   </span>
-                  <span className="font-semibold text-white">${r.total.toFixed(2)} {r.currency}</span>
+                  <span className="font-semibold text-white">${r.total.toFixed(2)}</span>
                 </div>
               </Link>
             ))}

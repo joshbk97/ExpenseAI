@@ -27,3 +27,17 @@ def test_validate_sql_blocks_receipt_items_without_receipts_join():
     assert ok is False
     assert "must join receipts" in reason
 
+
+def test_validate_sql_allows_extract_year_queries():
+    sql = (
+        "SELECT SUM(ri.total_price) FROM receipt_items ri "
+        "JOIN receipts r ON ri.receipt_id = r.id "
+        "JOIN categories c ON ri.category_id = c.id "
+        "WHERE r.user_id = :user_id "
+        "AND c.name ILIKE '%Dining%' "
+        "AND EXTRACT(YEAR FROM r.receipt_date) = EXTRACT(YEAR FROM CURRENT_DATE);"
+    )
+    ok, reason = validate_sql(sql)
+    assert ok is True, f"Validation failed: {reason}"
+
+

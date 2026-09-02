@@ -52,9 +52,9 @@ export const receiptsApi = {
 
 // ── Expenses ─────────────────
 export const expensesApi = {
-  summary: (days = 30) => api.get("/expenses/summary", { params: { days } }),
-  byCategory: (days = 30) => api.get("/expenses/by-category", { params: { days } }),
-  trends: (days = 30) => api.get("/expenses/trends", { params: { days } }),
+  summary: (days = 0) => api.get("/expenses/summary", { params: { days } }),
+  byCategory: (days = 0) => api.get("/expenses/by-category", { params: { days } }),
+  trends: (days = 0) => api.get("/expenses/trends", { params: { days } }),
 };
 
 // ── NL Query ─────────────────
@@ -64,7 +64,7 @@ export const queryApi = {
 
 // ── Insights ─────────────────
 export const insightsApi = {
-  get: (days = 30) => api.get("/insights", { params: { days } }),
+  get: (days = 0) => api.get("/insights", { params: { days } }),
 };
 
 export default api;

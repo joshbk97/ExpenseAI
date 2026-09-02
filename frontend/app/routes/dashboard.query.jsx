@@ -2,6 +2,82 @@ import { useState, useRef, useEffect } from "react";
 import { MessageSquare, Send, Database, Sparkles, Bot, User } from "lucide-react";
 import { queryApi } from "~/lib/api";
 
+function FormattedMessage({ content }) {
+  if (!content) return null;
+
+  const renderFormattedText = (text) => {
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+        return (
+          <strong key={i} className="font-semibold text-white">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      return part;
+    });
+  };
+
+  const lines = content.split('\n');
+  const elements = [];
+  let currentList = [];
+  let listType = null;
+
+  const flushList = () => {
+    if (currentList.length > 0) {
+      elements.push(
+        <ul key={`list-${elements.length}`} className="my-2 space-y-1.5 pl-1">
+          {currentList}
+        </ul>
+      );
+      currentList = [];
+      listType = null;
+    }
+  };
+
+  lines.forEach((line, lineIndex) => {
+    const trimmed = line.trim();
+    const bulletMatch = trimmed.match(/^[\*\-•]\s+(.*)/);
+    const numberMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+
+    if (bulletMatch) {
+      if (listType !== 'bullet') flushList();
+      listType = 'bullet';
+      currentList.push(
+        <li key={lineIndex} className="flex items-start gap-2.5 text-gray-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary-400 mt-2 flex-shrink-0" />
+          <span className="flex-1 leading-relaxed">{renderFormattedText(bulletMatch[1])}</span>
+        </li>
+      );
+    } else if (numberMatch) {
+      if (listType !== 'number') flushList();
+      listType = 'number';
+      currentList.push(
+        <li key={lineIndex} className="flex items-start gap-2.5 text-gray-200">
+          <span className="text-xs font-semibold text-primary-400 bg-primary-500/10 px-1.5 py-0.5 rounded mt-0.5 border border-primary-500/20 flex-shrink-0">
+            {numberMatch[1]}
+          </span>
+          <span className="flex-1 leading-relaxed">{renderFormattedText(numberMatch[2])}</span>
+        </li>
+      );
+    } else {
+      flushList();
+      if (trimmed) {
+        elements.push(
+          <p key={lineIndex} className="my-1 leading-relaxed text-gray-200">
+            {renderFormattedText(trimmed)}
+          </p>
+        );
+      }
+    }
+  });
+
+  flushList();
+
+  return <div className="space-y-1">{elements}</div>;
+}
+
 export default function AskAI() {
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState([
@@ -79,7 +155,11 @@ export default function AskAI() {
                       ? "bg-red-500/10 border border-red-500/20 text-red-400 rounded-tl-sm"
                       : "bg-surface-800 border border-white/5 text-gray-100 rounded-tl-sm"
                 }`}>
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  {msg.role === "user" ? (
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                  ) : (
+                    <FormattedMessage content={msg.content} />
+                  )}
                 </div>
 
                 {/* Show SQL and Data if available */}

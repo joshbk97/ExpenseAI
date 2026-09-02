@@ -115,7 +115,7 @@ export default function UploadReceipt() {
         !Number.isFinite(item.quantity) ||
         !Number.isFinite(item.unit_price) ||
         item.quantity <= 0 ||
-        item.unit_price < 0
+        item.unit_price <= 0
     );
     if (!String(manualForm.merchant || "").trim()) {
       setStatus("error");
@@ -290,7 +290,8 @@ export default function UploadReceipt() {
                     <label className="block text-sm text-gray-300 mb-1.5">Merchant</label>
                     <input
                       type="text"
-                      className="input-field w-full"
+                      required
+                      className="input-field w-full h-11"
                       value={manualForm.merchant}
                       onChange={(e) => setManualForm((prev) => ({ ...prev, merchant: e.target.value }))}
                       placeholder="e.g. Woolworths"
@@ -300,7 +301,7 @@ export default function UploadReceipt() {
                     <label className="block text-sm text-gray-300 mb-1.5">Receipt Date</label>
                     <input
                       type="date"
-                      className="input-field w-full"
+                      className="input-field w-full h-11"
                       value={manualForm.receipt_date}
                       onChange={(e) => setManualForm((prev) => ({ ...prev, receipt_date: e.target.value }))}
                     />
@@ -314,59 +315,63 @@ export default function UploadReceipt() {
                   </div>
                   <div className="p-3 space-y-3">
                     {manualForm.items.map((item, index) => (
-                      <div key={`manual-item-${index}`} className="grid grid-cols-12 gap-2 items-end">
-                        <div className="col-span-12 md:col-span-4">
+                      <div key={`manual-item-${index}`} className="grid grid-cols-12 md:grid-cols-[4fr_3.5fr_1.5fr_1.5fr_2fr] gap-2 items-end">
+                        <div className="col-span-12 md:col-span-1">
                           <label className="block text-xs text-gray-400 mb-1">Item Name</label>
                           <input
                             type="text"
-                            className="input-field w-full"
+                            required
+                            className="input-field w-full h-11"
                             value={item.name}
                             onChange={(e) => setManualItem(index, "name", e.target.value)}
                           />
                         </div>
-                        <div className="col-span-6 md:col-span-2">
+                        <div className="col-span-5 md:col-span-1">
                           <label className="block text-xs text-gray-400 mb-1">Category</label>
                           <select
-                            className="input-field w-full"
+                            className="input-field w-full h-11 py-2 px-2 bg-surface-800 text-gray-100"
                             value={item.category_id}
                             onChange={(e) => setManualItem(index, "category_id", e.target.value)}
                           >
-                            <option value="">Uncategorised</option>
+                            <option value="" className="bg-surface-900 text-gray-300"></option>
                             {categories.map((category) => (
-                              <option key={category.id} value={category.id}>
+                              <option key={category.id} value={category.id} className="bg-surface-900 text-gray-100">
                                 {category.icon} {category.name}
                               </option>
                             ))}
                           </select>
                         </div>
-                        <div className="col-span-3 md:col-span-2">
+                        <div className="col-span-2 md:col-span-1">
                           <label className="block text-xs text-gray-400 mb-1">Qty</label>
                           <input
                             type="number"
+                            required
                             min="0.01"
-                            className="input-field w-full"
+                            step="any"
+                            className="input-field w-full h-11 px-2"
                             value={item.quantity}
                             onChange={(e) => setManualItem(index, "quantity", e.target.value)}
                           />
                         </div>
-                        <div className="col-span-3 md:col-span-2">
-                          <label className="block text-xs text-gray-400 mb-1">Price (AUD)</label>
+                        <div className="col-span-2 md:col-span-1">
+                          <label className="block text-xs text-gray-400 mb-1">Price</label>
                           <input
                             type="number"
-                            min="0"
-                            step="0.01"
-                            className="input-field w-full"
+                            required
+                            min="0.01"
+                            step="any"
+                            className="input-field w-full h-11 px-2.5"
                             value={item.unit_price}
                             onChange={(e) => setManualItem(index, "unit_price", e.target.value)}
                           />
                         </div>
-                        <div className="col-span-6 md:col-span-2">
+                        <div className="col-span-3 md:col-span-1">
                           <label className="block text-xs text-gray-400 mb-1">Total</label>
-                          <div className="input-field w-full h-[42px] flex items-center">
+                          <div className="input-field w-full h-11 flex items-center px-4 font-mono text-gray-200">
                             ${(Number(item.quantity || 0) * Number(item.unit_price || 0)).toFixed(2)}
                           </div>
                         </div>
-                        <div className="col-span-12">
+                        <div className="col-span-12 md:col-span-5">
                           <button
                             type="button"
                             disabled={manualForm.items.length === 1}
@@ -400,7 +405,7 @@ export default function UploadReceipt() {
                         Saving...
                       </>
                     ) : (
-                      "Save Manual Expense"
+                      "Save Expense"
                     )}
                   </button>
                 </div>
@@ -415,8 +420,8 @@ export default function UploadReceipt() {
                 <h4 className="font-medium text-primary-300">How it works</h4>
                 <p className="text-sm text-gray-400 mt-1 leading-relaxed">
                   {mode === "upload"
-                    ? "Our pipeline runs OCR to extract receipt text, sends it to a secure LLM to structure merchant/date/line items, and then auto-categorises each item with confidence scoring."
-                    : "Manual entry saves your merchant, date, and line items directly into your expense ledger. Currency is fixed to AUD by default, and selected categories are used immediately in dashboards and reports."}
+                    ? "Our pipeline runs OCR to extract receipt text, sends it to a secure LLM to structure merchant/date/line items, and then auto-categorises each item before storing into expense ledgar"
+                    : "Manual entry saves your merchant, date, and line items directly into your expense ledger."}
                 </p>
               </div>
             </div>

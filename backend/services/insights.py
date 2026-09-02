@@ -27,7 +27,13 @@ Return ONLY a JSON array of strings, each string being one insight. Example:
 
 async def generate_insights(user_id: int, days: int, db: AsyncSession) -> InsightResponse:
     """Generate AI-powered spending insights."""
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    actual_date = func.coalesce(Receipt.receipt_date, Receipt.created_at)
+    conditions = [Receipt.user_id == user_id, Receipt.status == "completed"]
+    cat_conditions = [Receipt.user_id == user_id, ReceiptItem.total_price > 0]
+    if days > 0:
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        conditions.append(actual_date >= cutoff)
+        cat_conditions.append(actual_date >= cutoff)
 
     # Gather spending data
     receipt_result = await db.execute(
@@ -36,7 +42,7 @@ async def generate_insights(user_id: int, days: int, db: AsyncSession) -> Insigh
             func.count(Receipt.id).label("receipt_count"),
             func.coalesce(func.avg(Receipt.total), 0).label("avg_receipt"),
         )
-        .where(Receipt.user_id == user_id, Receipt.created_at >= cutoff, Receipt.status == "completed")
+        .where(*conditions)
     )
     summary = receipt_result.one()
 
@@ -45,7 +51,7 @@ async def generate_insights(user_id: int, days: int, db: AsyncSession) -> Insigh
         select(Category.name, func.sum(ReceiptItem.total_price).label("total"))
         .join(ReceiptItem, ReceiptItem.category_id == Category.id)
         .join(Receipt, ReceiptItem.receipt_id == Receipt.id)
-        .where(Receipt.user_id == user_id, Receipt.created_at >= cutoff)
+        .where(*cat_conditions)
         .group_by(Category.name)
         .order_by(func.sum(ReceiptItem.total_price).desc())
     )
@@ -54,7 +60,7 @@ async def generate_insights(user_id: int, days: int, db: AsyncSession) -> Insigh
     # Top merchants
     merchant_result = await db.execute(
         select(Receipt.merchant, func.sum(Receipt.total).label("total"), func.count(Receipt.id).label("visits"))
-        .where(Receipt.user_id == user_id, Receipt.created_at >= cutoff, Receipt.status == "completed")
+        .where(*conditions)
         .group_by(Receipt.merchant)
         .order_by(func.sum(Receipt.total).desc())
         .limit(5)

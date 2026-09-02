@@ -34,11 +34,19 @@ Rules:
 4. Use PostgreSQL syntax.
 5. Return ONLY the SQL query, no explanations or markdown.
 6. Use table aliases for readability.
-7. Use appropriate aggregations (SUM, COUNT, AVG, GROUP BY) when the question implies summaries.
-8. Limit results to 50 rows maximum.
+7. ITEM BREAKDOWN REQUIREMENT:
+   - When asked about total spend on an item or category, select individual matching transaction rows (including `ri.name`, `ri.total_price`, `r.merchant`, `r.receipt_date`) rather than ONLY returning a single SUM aggregate. This enables giving both the total sum and the itemized purchase breakdown.
+8. RECEIPT ITEM MATCHING & ABBREVIATIONS:
+   - Store receipts frequently abbreviate item names (e.g. 'CKN', 'CHK', 'CHCKN', 'CHICK' for chicken; 'MLK' for milk; 'BRD' for bread; 'BF'/'MINCE' for beef/meat).
+   - When searching for a general food item or category concept (e.g. "chicken"), construct flexible ILIKE filters checking full words AND common receipt abbreviations with OR conditions:
+     Example for chicken: (ri.name ILIKE '%chicken%' OR ri.name ILIKE '%ckn%' OR ri.name ILIKE '%chk%' OR ri.name ILIKE '%chick%' OR r.merchant ILIKE '%KFC%' OR r.merchant ILIKE '%Nando%')
+9. Limit results to 50 rows maximum.
 """
 
-ANSWER_SYSTEM_PROMPT = """You are a helpful expense tracking assistant. Given a user's question and the SQL query results, provide a clear, conversational answer. Format numbers as currency where appropriate. Be concise."""
+ANSWER_SYSTEM_PROMPT = """You are a helpful expense tracking assistant. Given a user's question and the SQL query results:
+1. Provide a clear, conversational answer with numbers formatted as currency.
+2. ALWAYS state the total overall cost FIRST when answering questions about spend on an item or category.
+3. IF there are multiple item instances or purchases in the query results, ALWAYS provide a clean bulleted item breakdown listing each purchase (showing Merchant, Date, Item Name, and Amount)."""
 
 # Forbidden SQL patterns
 FORBIDDEN_PATTERNS = [
@@ -54,14 +62,23 @@ DISALLOWED_TABLES = {"users"}
 def _extract_tables(sql: str) -> set[str]:
     """
     Find table names referenced by FROM/JOIN clauses.
-    Supports schema-qualified names and aliases.
+    Supports schema-qualified names and aliases, stripping functions (EXTRACT, SUBSTRING) and string literals.
     """
-    table_refs = re.findall(r"\b(?:FROM|JOIN)\s+([a-zA-Z0-9_.\"]+)", sql, flags=re.IGNORECASE)
+    # Remove string literals
+    clean_sql = re.sub(r"'[^']*'", "", sql)
+    # Remove EXTRACT(...) calls so 'FROM' inside EXTRACT isn't matched as a table source
+    clean_sql = re.sub(r"\bEXTRACT\s*\([^)]+\)", "", clean_sql, flags=re.IGNORECASE)
+    # Remove SUBSTRING(... FROM ...) calls
+    clean_sql = re.sub(r"\bSUBSTRING\s*\([^)]+\)", "", clean_sql, flags=re.IGNORECASE)
+    
+    table_refs = re.findall(r"\b(?:FROM|JOIN)\s+([a-zA-Z0-9_.\"]+)", clean_sql, flags=re.IGNORECASE)
     tables = set()
     for ref in table_refs:
         # Strip quoting and schema (public.receipts -> receipts)
         cleaned = ref.replace('"', "").split(".")[-1].lower()
-        tables.add(cleaned)
+        # Exclude common false positives from functions or subqueries
+        if cleaned not in ("select", "where", "group", "order", "limit", "having", "current_date", "current_timestamp", "now"):
+            tables.add(cleaned)
     return tables
 
 
@@ -78,7 +95,9 @@ def _has_user_scope(sql: str) -> bool:
 
 def validate_sql(sql: str) -> tuple[bool, str]:
     """Ensure the generated SQL is a safe SELECT query."""
-    sql_upper = sql.upper().strip()
+    # Strip string literals before security checking forbidden operations
+    sql_no_strings = re.sub(r"'[^']*'", "", sql)
+    sql_upper = sql_no_strings.upper().strip()
 
     if not sql_upper.startswith("SELECT"):
         return False, "Only SELECT statements are allowed."
@@ -97,7 +116,7 @@ def validate_sql(sql: str) -> tuple[bool, str]:
     if tables & DISALLOWED_TABLES:
         return False, "Access to restricted tables is not allowed."
     if not tables.issubset(ALLOWED_TABLES):
-        return False, "Query references tables outside the allowed scope."
+        return False, f"Query references tables outside the allowed scope ({tables - ALLOWED_TABLES})."
 
     # If receipt_items is queried, require a join to receipts for ownership filtering.
     if "receipt_items" in tables and "receipts" not in tables:

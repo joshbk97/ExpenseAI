@@ -12,13 +12,14 @@ const getIcon = (insight) => {
 };
 
 export default function Insights() {
+  const [days, setDays] = useState(0); // 0 = All Time
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loadInsights = async () => {
+  const loadInsights = async (targetDays = days) => {
     setLoading(true);
     try {
-      const res = await insightsApi.get(30);
+      const res = await insightsApi.get(targetDays);
       setData(res.data);
     } catch (err) {
       console.error(err);
@@ -28,10 +29,10 @@ export default function Insights() {
   };
 
   useEffect(() => {
-    loadInsights();
-  }, []);
+    loadInsights(days);
+  }, [days]);
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="flex h-[calc(100vh-8rem)] items-center justify-center flex-col gap-4">
         <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
@@ -42,20 +43,46 @@ export default function Insights() {
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-in space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             AI Insights <Sparkles className="w-5 h-5 text-violet-400" />
           </h2>
-          <p className="text-gray-400">Personalised financial analysis based on your last 30 days of data.</p>
+          <p className="text-gray-400">
+            {days === 0 ? "Personalised financial analysis across all receipt data." : `Personalised financial analysis for the last ${days} days.`}
+          </p>
         </div>
-        <button 
-          onClick={loadInsights} 
-          className="btn-secondary flex items-center gap-2"
-          disabled={loading}
-        >
-          <RefreshCw className="w-4 h-4" /> Refresh
-        </button>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 bg-surface-800/80 p-1 rounded-xl border border-white/10">
+            {[
+              { label: "All Time", value: 0 },
+              { label: "30 Days", value: 30 },
+              { label: "90 Days", value: 90 },
+              { label: "1 Year", value: 365 },
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setDays(option.value)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                  days === option.value
+                    ? "bg-primary-600 text-white shadow-md shadow-primary-900/40"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <button 
+            onClick={() => loadInsights(days)} 
+            className="btn-secondary flex items-center gap-2"
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4">

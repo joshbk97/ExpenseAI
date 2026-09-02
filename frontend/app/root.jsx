@@ -14,7 +14,7 @@ export const links = () => [
 ];
 
 export const meta = () => [
-  { title: "ExpenseAI — Smart Expense Tracking" },
+  { title: "ExpenseAI - Smart Expense Tracking" },
   { name: "description", content: "AI-powered expense tracking with OCR receipt scanning, smart categorisation, and natural language queries." },
 ];
 

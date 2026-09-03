@@ -138,7 +138,10 @@ async def list_receipts(
     total_result = await db.execute(count_query)
     total = total_result.scalar()
 
-    query = query.order_by(desc(Receipt.created_at)).offset((page - 1) * page_size).limit(page_size)
+    query = query.order_by(
+        func.coalesce(Receipt.receipt_date, Receipt.created_at).desc(),
+        desc(Receipt.id),
+    ).offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(query)
     receipts = result.scalars().all()
 

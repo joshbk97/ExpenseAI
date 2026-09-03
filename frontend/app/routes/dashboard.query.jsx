@@ -131,7 +131,7 @@ export default function AskAI() {
     <div className="max-w-4xl mx-auto min-h-[calc(100vh-9rem)] flex flex-col animate-fade-in">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-          Ask AI <Sparkles className="w-5 h-5 text-primary-400" />
+          Ask AI
         </h2>
         <p className="text-gray-400">Query your expense data using natural language.</p>
       </div>
